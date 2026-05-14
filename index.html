@@ -349,6 +349,7 @@ function showApp(user) {
     '<div id="day-list-view"></div>' +
     '<div id="input-area">' +
       '<div class="bullet-selector"><span class="bullet-label">유형</span>'+bulletOpts+'</div>' +
+      '<div id="time-sel-row" style="display:none;margin-bottom:8px;display:none;align-items:center;gap:8px;"><span style="font-size:11px;color:var(--text-2);">시간</span><input type="time" id="memo-time-inp" style="border:1px solid var(--line);border-radius:8px;padding:5px 10px;font-family:var(--mono);font-size:13px;background:var(--surface);color:var(--text);outline:none;flex:1;"></div>' +
       '<div class="input-row"><textarea id="memo-input" placeholder="기록해요... (링크 포함 가능)" rows="1"></textarea>' +
         '<button id="send-btn"><svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg></button>' +
       '</div>' +
@@ -437,6 +438,19 @@ function goDate(o,anim) {
 function reload(anim) {
   if(unsub){unsub();unsub=null;}
   memos=[];render();
+  // 시간 선택기 표시/숨김
+  const tsr = document.getElementById('time-sel-row');
+  if(tsr) {
+    if(dateOffset !== 0) {
+      tsr.style.display = 'flex';
+      // 기본값 현재 시간
+      const n=now();
+      const ti=document.getElementById('memo-time-inp');
+      if(ti) ti.value = String(n.h).padStart(2,'0')+':'+String(n.m).padStart(2,'0');
+    } else {
+      tsr.style.display = 'none';
+    }
+  }
   const q=query(collection(db,'memos'),where('uid','==',currentUser.uid),where('date','==',curKey()),orderBy('timestamp','asc'));
   unsub=onSnapshot(q,snap=>{memos=snap.docs.map(d=>({id:d.id,...d.data()}));render(anim);if(dayListMode)renderDayList();});
 }
@@ -497,7 +511,13 @@ async function addMemo() {
   const inp=document.getElementById('memo-input');
   const text=inp.value.trim();
   if(!text||!currentUser)return;
-  const n=now();
+  // 날짜가 오늘이 아니면 선택한 시간 사용
+  let n=now();
+  const ti=document.getElementById('memo-time-inp');
+  if(dateOffset !== 0 && ti && ti.value) {
+    const parts=ti.value.split(':');
+    n={h:parseInt(parts[0]),m:parseInt(parts[1]),s:0};
+  }
   inp.value='';inp.style.height='auto';
   const urlRe=/(https?:\/\/[^\s]+)/g;
   const telRe=/(\b0\d{1,2}[-.]?\d{3,4}[-.]?\d{4}\b)/g;
