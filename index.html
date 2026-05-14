@@ -10,16 +10,16 @@
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
 :root {
-  --bg: #F7F6F2; --surface: #FFFFFF; --line: #E0DED8;
-  --text: #1A1918; --text-2: #9A9890; --text-3: #C8C6C0;
-  --accent: #1A1918; --accent-light: #F0EDE8;
-  --blue: #2563EB; --red: #DC2626; --green: #16A34A; --pink: #DB2777;
-  --orange: #EA580C; --purple: #7C3AED;
+  --bg: #1E2030; --surface: #2A2D3E; --line: #363A4F;
+  --text: #CDD6F4; --text-2: #A6ADC8; --text-3: #6C7086;
+  --accent: #CDD6F4; --accent-light: #2A2D3E;
+  --blue: #89B4FA; --red: #F38BA8; --green: #A6E3A1; --pink: #F5C2E7;
+  --orange: #FAB387; --purple: #CBA6F7;
   --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
   --mono: 'SF Mono', 'Fira Mono', monospace;
 }
-html, body { height: 100%; background: #DDDBD5; font-family: var(--font); color: var(--text); overflow: hidden; }
-#app-shell { width: 390px; height: 100dvh; margin: 0 auto; box-shadow: 0 0 80px rgba(0,0,0,0.12); overflow: hidden; display: flex; flex-direction: column; background: var(--bg); }
+html, body { height: 100%; background: #181825; font-family: var(--font); color: var(--text); overflow: hidden; }
+#app-shell { width: 390px; height: 100dvh; margin: 0 auto; box-shadow: 0 0 80px rgba(0,0,0,0.5); overflow: hidden; display: flex; flex-direction: column; background: var(--bg); }
 @media (max-width: 430px) { #app-shell { width: 100%; box-shadow: none; } html, body { background: var(--bg); } }
 
 /* 로그인 */
@@ -52,7 +52,7 @@ html, body { height: 100%; background: #DDDBD5; font-family: var(--font); color:
 
 /* 달력 */
 .cal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); z-index: 300; display: flex; align-items: flex-start; justify-content: center; padding-top: 100px; }
-.cal-popup { background: var(--surface); border-radius: 16px; padding: 16px; width: 300px; box-shadow: 0 8px 32px rgba(0,0,0,0.15); }
+.cal-popup { background: var(--surface); border-radius: 16px; padding: 16px; width: 300px; box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
 .cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .cal-title { font-size: 15px; font-weight: 600; }
 .cal-nav-btn { width: 28px; height: 28px; border: none; background: var(--accent-light); border-radius: 8px; cursor: pointer; font-size: 14px; }
@@ -500,11 +500,14 @@ async function addMemo() {
   const n=now();
   inp.value='';inp.style.height='auto';
   const urlRe=/(https?:\/\/[^\s]+)/g;
+  const telRe=/(\b0\d{1,2}[-.]?\d{3,4}[-.]?\d{4}\b)/g;
   const links=text.match(urlRe)||[];
+  const tels=(text.match(telRe)||[]).map(t=>('tel:'+t.replace(/[-. ]/g,'')));
+  const allLinks=[...links,...tels];
   try {
     await addDoc(collection(db,'memos'),{
-      uid:currentUser.uid, date:dKey(dateOffset), text, links,
-      hasLink:links.length>0, bulletType:selBullet, done:false,
+      uid:currentUser.uid, date:dKey(dateOffset), text, links:allLinks,
+      hasLink:allLinks.length>0, bulletType:selBullet, done:false,
       h:n.h, m:n.m, s:n.s, timestamp:Date.now()
     });
   }catch(e){console.error(e);}
@@ -556,7 +559,7 @@ function renderMemoView(memo,editMode) {
     html+='<div class="mv-text'+(memo.done?' done':'')+'">'+memo.text.replace(/</g,'&lt;').replace(/\n/g,'<br>')+'</div>';
     if(links.length>0){
       html+='<div class="mv-links">';
-      links.forEach(l=>{html+='<a class="mv-link-item" href="'+l+'" target="_blank"><span>🔗</span><span class="mv-link-text">'+l+'</span></a>';});
+      links.forEach(l=>{const isTel=l.startsWith('tel:');const icon=isTel?'📞':'🔗';const label=isTel?l.replace('tel:',''):l;html+='<a class="mv-link-item" href="'+l+'"'+(isTel?'':' target="_blank"')+'><span>'+icon+'</span><span class="mv-link-text">'+label+'</span></a>';});
       html+='</div>';
     }
     html+='<div class="mv-check-row"><button class="mv-toggle'+(memo.done?' on':'')+'" id="mv-tgl"></button><span class="mv-check-label">'+(memo.done?'완료됨':'미완료')+'</span></div>';
